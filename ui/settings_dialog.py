@@ -2,8 +2,9 @@ import json
 import os
 import logging
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox
+from PySide6.QtCore import Qt  # 添加 QtCore 导入
 from core.score_checker import start_task, stop_task  # 从 core 目录导入
-from wxauto import WeChat
+from wxautox import WeChat  # 修正为 wxautox 匹配你的依赖
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,8 @@ class SettingsDialog(QDialog):
     def setup_ui(self):
         self.setWindowTitle("成绩查询配置")
         self.resize(450, 300)
+        # 启用最小化和最大化按钮
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(12)
