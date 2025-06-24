@@ -6,7 +6,7 @@
 - **操作系统**: Windows 10/11
 - **WeChat**: 3.9 不支持 4.0
 - **依赖工具**: pip, PyInstaller
-- 
+
 ## 技术栈
 
 
