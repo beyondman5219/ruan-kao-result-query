@@ -1,0 +1,12 @@
+PySide6>=6.7.1
+SQLAlchemy>=2.0.40
+google-genai>=0.9.0
+wxauto>=1.0.12
+python-dotenv>=1.0.1
+requests>=2.32.3  # Adjusted from >=2.33.0 to >=2.32.3
+psutil>=6.1.0
+pywin32>=307
+pyinstaller>=6.12.0
+opencv-python>=4.11.0.86
+opencv-contrib-python>=4.11.0.86
+pillow>=10.5.0
