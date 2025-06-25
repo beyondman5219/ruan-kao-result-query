@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # 全局变量
 timer = None
 running = False
-WECHAT_WEBHOOK = ""  # 内置 Webhook
+WECHAT_WEBHOOK = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=6dcde160-5bf5-4f26-b1f8-4fcae5905030"  # 内置 Webhook
 
 def load_config():
     config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.json')

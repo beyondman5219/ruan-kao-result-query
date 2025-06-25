@@ -4,7 +4,7 @@ import logging
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox
 from PySide6.QtCore import Qt  # 添加 QtCore 导入
 from core.score_checker import start_task, stop_task  # 从 core 目录导入
-from wxautox import WeChat  # 修正为 wxautox 匹配你的依赖
+from wxauto import WeChat  # 修正为 wxautox 匹配你的依赖
 
 logger = logging.getLogger(__name__)
 
