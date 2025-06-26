@@ -5,7 +5,6 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QL
 from PySide6.QtCore import Qt
 
 from core.score_checker import start_task, stop_task  # 从 core 目录导入
-from wxauto import WeChat  # 修正为 wxautox 匹配你的依赖
 from logging_config import logger, formatter  # 从独立模块导入 logger
 
 # 自定义日志处理器
@@ -35,7 +34,7 @@ class SettingsDialog(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("成绩查询配置")
-        self.resize(450, 450)  # 增加高度以容纳新字段
+        self.resize(450, 500)  # 增加高度以容纳新字段
         # 启用最小化和最大化按钮
         self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
         layout = QVBoxLayout(self)
@@ -72,6 +71,12 @@ class SettingsDialog(QDialog):
         self.email_password_input.setPlaceholderText("请输入 QQ 邮箱授权码（在 QQ 邮箱设置中获取）")
         self.email_password_input.setEchoMode(QLineEdit.Password)  # 隐藏输入
         layout.addWidget(self.email_password_input)
+
+        # 最大通知次数
+        layout.addWidget(QLabel("查询到结果后允许重复通知的次数（默认3次）"))
+        self.max_sends_input = QLineEdit()
+        self.max_sends_input.setPlaceholderText("请输入允许重复通知的次数（须大于等于1）")
+        layout.addWidget(self.max_sends_input)
 
         # WeChat Notification Switch
         self.wechat_switch = QCheckBox("启用微信传输助手通知(请先启动微信，目前不支持微信4.0)")
@@ -135,6 +140,7 @@ class SettingsDialog(QDialog):
                 self.email_input.setText(config.get('email', ''))
                 self.email_password_input.setText(config.get('password', ''))
                 self.wechat_switch.setChecked(config.get('enable_wechat', False))
+                self.max_sends_input.setText(str(config.get('max_sends', 3)))  # 加载最大通知次数，默认3
         except Exception as e:
             logger.error(f"加载配置文件失败: {e}", exc_info=True)
             QMessageBox.warning(self, "错误", "无法加载配置文件，使用默认值")
@@ -145,6 +151,7 @@ class SettingsDialog(QDialog):
         interval = self.interval_input.text().strip()
         email = self.email_input.text().strip()
         email_password = self.email_password_input.text().strip()
+        max_sends = self.max_sends_input.text().strip()
 
         if not cookies:
             return False, "Cookies 不能为空"
@@ -160,6 +167,12 @@ class SettingsDialog(QDialog):
             return False, "请输入有效的 QQ 邮箱地址"
         if not email_password:
             return False, "请输入 QQ 邮箱授权码"
+        try:
+            max_sends_val = int(max_sends)
+            if max_sends_val < 1:
+                return False, "最大通知次数必须大于等于1"
+        except ValueError:
+            return False, "最大通知次数必须是整数"
         return True, ""
 
     def save_settings(self):
@@ -174,7 +187,8 @@ class SettingsDialog(QDialog):
             "interval": int(self.interval_input.text().strip()),
             "email": self.email_input.text().strip(),
             "password": self.email_password_input.text().strip(),
-            "enable_wechat": self.wechat_switch.isChecked()
+            "enable_wechat": self.wechat_switch.isChecked(),
+            "max_sends": int(self.max_sends_input.text().strip())  # 保存最大通知次数
         }
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.json')
         try:

@@ -50,7 +50,16 @@ python main.py
 
 ### 终端打包
 ```shell
-pyinstaller -F -w -i bot.ico --add-data "bot.ico;."   -n ruan-kao-result-query-V1.0 main.py
+pyinstaller -F -w -i bot.ico --add-data "bot.ico;."   -n ruan-kao-result-query-V1.1 main.py
 ```
-# 备注
+## 版本更新日志
+1.0 初始版本，软考成绩查询后发送到微信文件传输助手
+1.1 软考成绩查询后发送到QQ邮箱和文件传输助手（可选）
+
+## 软件下载
+不会技术的同学，可以直接下载使用
+
+[下载](https://github.com/yangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangyangy)
+
+## 备注
 如果觉得不错，请再右上角点一个 ⭐ Star

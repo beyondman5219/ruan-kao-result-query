@@ -12,7 +12,7 @@ from logging_config import logger  # 从独立模块导入 logger
 # 全局变量
 timer = None
 running = False
-
+send_count = 0  # 记录发送次数
 
 def load_config():
     config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.json')
@@ -22,7 +22,6 @@ def load_config():
     except Exception as e:
         logger.error(f"加载配置文件失败: {e}", exc_info=True)
         raise
-
 
 def send_request():
     config = load_config()
@@ -41,7 +40,6 @@ def send_request():
         logger.error(f"请求失败: {e}", exc_info=True)
         return None
 
-
 def send_email(content, email_config, title='成绩查询结果'):
     try:
         msg = MIMEText(content, 'plain', 'utf-8')
@@ -49,7 +47,6 @@ def send_email(content, email_config, title='成绩查询结果'):
         msg['From'] = email_config['email']
         msg['To'] = email_config['email']
 
-        # QQ SMTP 配置
         smtp_server = 'smtp.qq.com'
         smtp_port = 587
         smtp_user = email_config['email']
@@ -64,13 +61,15 @@ def send_email(content, email_config, title='成绩查询结果'):
     except Exception as e:
         logger.error(f"QQ 邮箱通知发送失败: {e}", exc_info=True)
 
-
 def process_response():
+    global send_count
     response = send_request()
+    email_config = load_config()
+    max_sends = email_config.get('max_sends', 3)  # 从配置中获取最大通知次数，默认3
     if response and response.get('status') == 200:
         if response.get('data'):
             content = response['data']
-            title = f"【{content['KSSJ']}-{content['ZGMC']}】软考成绩查询成功"
+            title = f"【{content['KSSJ']}-{content['ZGMC']}】软考成绩"
             msg = f"""   # 成绩查询结果
 ----------------------------------------
 考试时间: {content['KSSJ']}
@@ -88,7 +87,6 @@ def process_response():
             logger.info(f"查询结果: {msg}")
 
             try:
-                email_config = load_config()
                 send_email(msg, {
                     'email': email_config.get('email', ''),
                     'password': email_config.get('password', '')
@@ -106,13 +104,18 @@ def process_response():
                     logger.info("微信消息发送成功")
                 except Exception as e:
                     logger.error(f"微信消息发送失败: {e.args}", exc_info=True)
+
+            send_count += 1
+            logger.info(f"已发送 {send_count} 次通知")
+            if send_count >= max_sends:
+                stop_task()
+                logger.info(f"达到最大发送次数 {max_sends}，任务自动终止")
         else:
             logger.info("未查询到结果")
     else:
         logger.warning("响应无效或请求失败")
-    if running:
+    if running and send_count < max_sends:
         schedule_next()
-
 
 def schedule_next():
     global timer
@@ -121,16 +124,15 @@ def schedule_next():
     timer.daemon = True
     timer.start()
 
-
 def start_task():
-    global running, timer
+    global running, timer, send_count
     if not running:
         running = True
+        send_count = 0  # 重置发送次数
         logger.info("定时任务开始")
         process_response()
     else:
         logger.info("定时任务已在运行")
-
 
 def stop_task():
     global running, timer
