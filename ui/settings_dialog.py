@@ -28,9 +28,8 @@ class TextEditLogger(logging.Handler):
         self.text_edit.ensureCursorVisible()  # 自动滚动到最新日志
 
 class SettingsDialog(QDialog):
-    def __init__(self, wx: WeChat, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.wx = wx
         self.setup_ui()
         self.load_settings()
 
@@ -175,7 +174,7 @@ class SettingsDialog(QDialog):
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=4)
             logger.info("配置文件保存成功")
-            start_task(self.wx)
+            start_task()
             QMessageBox.information(self, "成功", "配置文件保存并任务启动成功")
         except Exception as e:
             logger.error(f"保存配置文件失败: {e}", exc_info=True)

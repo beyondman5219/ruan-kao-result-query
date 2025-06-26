@@ -61,17 +61,14 @@ def send_email(content, email_config):
     except Exception as e:
         logger.error(f"QQ 邮箱通知发送失败: {e}", exc_info=True)
 
-def process_response(wx: WeChat):
+def process_response():
     response = send_request()
     if response and response.get('status') == 200:
         if response.get('data'):
             content = response['data']
             msg = f"""   
+# 【{content['KSSJ']}-{content['ZGMC']}】软考成绩查询成功
 ----------------------------------------
-# 成绩查询成功
-----------------------------------------
-考试时间: {content['KSSJ']}
-资格名称: {content['ZGMC']}
 证件号: {content['ZJH']}
 准考证号: {content['ZKZH']}
 姓名: {content['XM']}
@@ -95,10 +92,11 @@ def process_response(wx: WeChat):
                 logger.error(f"QQ 邮箱查询结果发送失败: {e}", exc_info=True)
 
             try:
+                wx = WeChat()
                 wx.SendMsg(msg, "文件传输助手")
                 logger.info("微信消息发送成功")
             except Exception as e:
-                logger.error(f"微信消息发送失败: {e}", exc_info=True)
+                logger.error(f"微信消息发送失败: {e.args}", exc_info=True)
         else:
             logger.info("未查询到结果")
     else:
@@ -113,12 +111,12 @@ def schedule_next(wx: WeChat):
     timer.daemon = True
     timer.start()
 
-def start_task(wx: WeChat):
+def start_task():
     global running, timer
     if not running:
         running = True
         logger.info("定时任务开始")
-        process_response(wx)
+        process_response()
     else:
         logger.info("定时任务已在运行")
 

@@ -7,7 +7,7 @@ from PySide6.QtGui import QIcon
 from ui.settings_dialog import SettingsDialog  # 导入共享 logger
 from logging_config import logger  # 从独立模块导入 logger
 from core.score_checker import stop_task
-from wxauto import WeChat
+
 
 # 初始化配置文件
 def initialize_config():
@@ -29,8 +29,7 @@ class QueryApp(QApplication):
         super().__init__(sys.argv)
         initialize_config()
         logger.info("应用程序启动")
-        self.wx = WeChat()
-        self.settings_dialog = SettingsDialog(self.wx)
+        self.settings_dialog = SettingsDialog()
         self.settings_dialog.show()
         if os.path.exists("bot.ico"):
             self.setWindowIcon(QIcon("bot.ico"))
