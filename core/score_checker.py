@@ -1,13 +1,12 @@
 import json
-import logging
 import os
 import threading
 
 import requests
-from wxauto import WeChat
+from wxautox import WeChat
 
-# 配置日志
-logger = logging.getLogger(__name__)
+
+from logging_config import logger  # 从独立模块导入 logger
 
 # 全局变量
 timer = None
@@ -20,7 +19,7 @@ def load_config():
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        logger.error(f"加载配置文件失败: {e}")
+        logger.error(f"加载配置文件失败: {e}", exc_info=True)
         raise
 
 def send_request():
@@ -37,7 +36,7 @@ def send_request():
         response.raise_for_status()
         return response.json()
     except Exception as e:
-        logger.error(f"请求失败: {e}")
+        logger.error(f"请求失败: {e}", exc_info=True)
         return None
 
 def send_wechat_message(content):
@@ -47,7 +46,7 @@ def send_wechat_message(content):
         response.raise_for_status()
         logger.info("企业微信消息发送成功")
     except Exception as e:
-        logger.error(f"企业微信消息发送失败: {e}")
+        logger.error(f"企业微信消息发送失败: {e}", exc_info=True)
 
 def process_response(wx: WeChat):
     response = send_request()
@@ -60,13 +59,13 @@ def process_response(wx: WeChat):
                 send_wechat_message(content)
                 logger.info("企业微信机器人查询结果发送成功")
             except Exception as e:
-                logger.error(f"企业微信机器人查询结果发送失败: {e}")
+                logger.error(f"企业微信机器人查询结果发送失败: {e}", exc_info=True)
 
             try:
                 wx.SendMsg(content, "文件传输助手")
                 logger.info("微信消息发送成功")
             except Exception as e:
-                logger.error(f"微信消息发送失败: {e}")
+                logger.error(f"微信消息发送失败: {e}", exc_info=True)
         else:
             logger.info("未查询到结果")
     else:

@@ -1,12 +1,23 @@
 import json
-import os
 import logging
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox
-from PySide6.QtCore import Qt  # 添加 QtCore 导入
+import os
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QTextEdit
+from PySide6.QtCore import Qt
+
 from core.score_checker import start_task, stop_task  # 从 core 目录导入
 from wxauto import WeChat  # 修正为 wxautox 匹配你的依赖
+from logging_config import logger,formatter  # 从独立模块导入 logger
 
-logger = logging.getLogger(__name__)
+# 自定义日志处理器
+class TextEditLogger(logging.Handler):
+    def __init__(self, text_edit):
+        super().__init__()
+        self.text_edit = text_edit
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.text_edit.append(msg)
+        self.text_edit.ensureCursorVisible()  # 自动滚动到最新日志
 
 class SettingsDialog(QDialog):
     def __init__(self, wx: WeChat, parent=None):
@@ -17,7 +28,7 @@ class SettingsDialog(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("成绩查询配置")
-        self.resize(450, 300)
+        self.resize(450, 400)  # 增加高度以容纳日志窗口
         # 启用最小化和最大化按钮
         self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
         layout = QVBoxLayout(self)
@@ -55,6 +66,21 @@ class SettingsDialog(QDialog):
         button_layout.addWidget(self.cancel_btn)
         layout.addLayout(button_layout)
 
+        # Log Display
+        self.log_text = QTextEdit()
+        self.log_text.setReadOnly(True)
+        self.log_text.setStyleSheet("""
+            QTextEdit { background-color: white; border: 1px solid #D2D2D7; border-radius: 8px; padding: 5px; font-size: 12px; color: #1D1D1F; }
+        """)
+        # 设置自适应大小
+        self.log_text.setSizePolicy(self.log_text.sizePolicy().horizontalPolicy(), self.log_text.sizePolicy().verticalPolicy().Expanding)
+        layout.addWidget(self.log_text)
+
+        # 配置日志输出
+        log_handler = TextEditLogger(self.log_text)
+        log_handler.setFormatter(logger.handlers[0].formatter if logger.handlers else formatter)  # 使用现有格式器
+        logger.addHandler(log_handler)
+
         # macOS 风格
         self.setStyleSheet("""
             QDialog { background-color: #F5F5F7; }
@@ -77,7 +103,7 @@ class SettingsDialog(QDialog):
                 self.stage_input.setText(config.get('stage', ''))
                 self.interval_input.setText(str(config.get('interval', 60)))
         except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
+            logger.error(f"加载配置文件失败: {e}", exc_info=True)
             QMessageBox.warning(self, "错误", "无法加载配置文件，使用默认值")
 
     def validate_inputs(self):
@@ -115,11 +141,11 @@ class SettingsDialog(QDialog):
             logger.info("配置文件保存成功")
             start_task(self.wx)
             QMessageBox.information(self, "成功", "配置文件保存并任务启动成功")
-            # self.accept()
         except Exception as e:
-            logger.error(f"保存配置文件失败: {e}")
+            logger.error(f"保存配置文件失败: {e}", exc_info=True)
             QMessageBox.warning(self, "错误", f"保存配置文件失败: {e}")
 
     def stop_task(self):
         stop_task()
+        logger.info("定时任务已停止")
         QMessageBox.information(self, "成功", "定时任务已停止")
