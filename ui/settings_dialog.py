@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QTextEdit
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QTextEdit, QCheckBox
 from PySide6.QtCore import Qt
 
 from core.score_checker import start_task, stop_task  # 从 core 目录导入
@@ -67,11 +67,16 @@ class SettingsDialog(QDialog):
         layout.addWidget(self.email_input)
 
         # Email Password
-        layout.addWidget(QLabel("QQ 邮箱授权码:"))
+        layout.addWidget(QLabel("QQ 邮箱授权码:（网址：https://service.mail.qq.com/detail/0/75 ）"))
         self.email_password_input = QLineEdit()
         self.email_password_input.setPlaceholderText("请输入 QQ 邮箱授权码（在 QQ 邮箱设置中获取）")
         self.email_password_input.setEchoMode(QLineEdit.Password)  # 隐藏输入
         layout.addWidget(self.email_password_input)
+
+        # WeChat Notification Switch
+        self.wechat_switch = QCheckBox("启用微信传输助手通知(请先启动微信，目前不支持微信4.0)")
+        self.wechat_switch.setChecked(False)
+        layout.addWidget(self.wechat_switch)
 
         # Buttons
         button_layout = QHBoxLayout()
@@ -129,6 +134,7 @@ class SettingsDialog(QDialog):
                 self.interval_input.setText(str(config.get('interval', 60)))
                 self.email_input.setText(config.get('email', ''))
                 self.email_password_input.setText(config.get('password', ''))
+                self.wechat_switch.setChecked(config.get('enable_wechat', False))
         except Exception as e:
             logger.error(f"加载配置文件失败: {e}", exc_info=True)
             QMessageBox.warning(self, "错误", "无法加载配置文件，使用默认值")
@@ -167,7 +173,8 @@ class SettingsDialog(QDialog):
             "stage": self.stage_input.text().strip(),
             "interval": int(self.interval_input.text().strip()),
             "email": self.email_input.text().strip(),
-            "password": self.email_password_input.text().strip()
+            "password": self.email_password_input.text().strip(),
+            "enable_wechat": self.wechat_switch.isChecked()
         }
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.json')
         try:

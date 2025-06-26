@@ -13,6 +13,7 @@ from logging_config import logger  # 从独立模块导入 logger
 timer = None
 running = False
 
+
 def load_config():
     config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.json')
     try:
@@ -21,6 +22,7 @@ def load_config():
     except Exception as e:
         logger.error(f"加载配置文件失败: {e}", exc_info=True)
         raise
+
 
 def send_request():
     config = load_config()
@@ -39,10 +41,11 @@ def send_request():
         logger.error(f"请求失败: {e}", exc_info=True)
         return None
 
-def send_email(content, email_config):
+
+def send_email(content, email_config, title='成绩查询结果'):
     try:
         msg = MIMEText(content, 'plain', 'utf-8')
-        msg['Subject'] = '成绩查询结果'
+        msg['Subject'] = title
         msg['From'] = email_config['email']
         msg['To'] = email_config['email']
 
@@ -61,14 +64,17 @@ def send_email(content, email_config):
     except Exception as e:
         logger.error(f"QQ 邮箱通知发送失败: {e}", exc_info=True)
 
+
 def process_response():
     response = send_request()
     if response and response.get('status') == 200:
         if response.get('data'):
             content = response['data']
-            msg = f"""   
-# 【{content['KSSJ']}-{content['ZGMC']}】软考成绩查询成功
+            title = f"【{content['KSSJ']}-{content['ZGMC']}】软考成绩查询成功"
+            msg = f"""   # 成绩查询结果
 ----------------------------------------
+考试时间: {content['KSSJ']}
+资格名称: {content['ZGMC']}
 证件号: {content['ZJH']}
 准考证号: {content['ZKZH']}
 姓名: {content['XM']}
@@ -86,30 +92,35 @@ def process_response():
                 send_email(msg, {
                     'email': email_config.get('email', ''),
                     'password': email_config.get('password', '')
-                })
+                }, title)
                 logger.info("QQ 邮箱查询结果发送成功")
             except Exception as e:
                 logger.error(f"QQ 邮箱查询结果发送失败: {e}", exc_info=True)
 
-            try:
-                wx = WeChat()
-                wx.SendMsg(msg, "文件传输助手")
-                logger.info("微信消息发送成功")
-            except Exception as e:
-                logger.error(f"微信消息发送失败: {e.args}", exc_info=True)
+            # 微信通知开关控制，需登录微信
+            # 注意：开启此功能前需确保微信已登录，否则可能失败
+            if load_config().get('enable_wechat', False):
+                try:
+                    wx = WeChat()
+                    wx.SendMsg(msg, "文件传输助手")
+                    logger.info("微信消息发送成功")
+                except Exception as e:
+                    logger.error(f"微信消息发送失败: {e.args}", exc_info=True)
         else:
             logger.info("未查询到结果")
     else:
         logger.warning("响应无效或请求失败")
     if running:
-        schedule_next(wx)
+        schedule_next()
 
-def schedule_next(wx: WeChat):
+
+def schedule_next():
     global timer
     config = load_config()
-    timer = threading.Timer(config['interval'], process_response, args=(wx,))
+    timer = threading.Timer(config['interval'], process_response, args=())
     timer.daemon = True
     timer.start()
+
 
 def start_task():
     global running, timer
@@ -119,6 +130,7 @@ def start_task():
         process_response()
     else:
         logger.info("定时任务已在运行")
+
 
 def stop_task():
     global running, timer
