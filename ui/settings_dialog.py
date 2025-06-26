@@ -1,12 +1,12 @@
 import json
-import logging
 import os
+import logging
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QTextEdit
 from PySide6.QtCore import Qt
 
 from core.score_checker import start_task, stop_task  # 从 core 目录导入
 from wxauto import WeChat  # 修正为 wxautox 匹配你的依赖
-from logging_config import logger,formatter  # 从独立模块导入 logger
+from logging_config import logger, formatter  # 从独立模块导入 logger
 
 # 自定义日志处理器
 class TextEditLogger(logging.Handler):
@@ -16,7 +16,15 @@ class TextEditLogger(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        self.text_edit.append(msg)
+        # 根据日志级别设置颜色
+        color = {
+            'INFO': 'green',
+            'ERROR': 'red',
+            'WARNING': 'orange',
+            'DEBUG': 'gray'
+        }.get(record.levelname, 'black')
+        html_msg = f'<span style="color: {color}">{msg}</span>'
+        self.text_edit.append(html_msg)
         self.text_edit.ensureCursorVisible()  # 自动滚动到最新日志
 
 class SettingsDialog(QDialog):
@@ -28,7 +36,7 @@ class SettingsDialog(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("成绩查询配置")
-        self.resize(450, 400)  # 增加高度以容纳日志窗口
+        self.resize(450, 450)  # 增加高度以容纳新字段
         # 启用最小化和最大化按钮
         self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
         layout = QVBoxLayout(self)
@@ -53,6 +61,19 @@ class SettingsDialog(QDialog):
         self.interval_input.setPlaceholderText("请输入定时频率（例如 60）")
         layout.addWidget(self.interval_input)
 
+        # Email
+        layout.addWidget(QLabel("QQ 邮箱:"))
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("请输入 QQ 邮箱地址（例如 123456789@qq.com）")
+        layout.addWidget(self.email_input)
+
+        # Email Password
+        layout.addWidget(QLabel("QQ 邮箱授权码:"))
+        self.email_password_input = QLineEdit()
+        self.email_password_input.setPlaceholderText("请输入 QQ 邮箱授权码（在 QQ 邮箱设置中获取）")
+        self.email_password_input.setEchoMode(QLineEdit.Password)  # 隐藏输入
+        layout.addWidget(self.email_password_input)
+
         # Buttons
         button_layout = QHBoxLayout()
         self.save_btn = QPushButton("保存并启动")
@@ -66,6 +87,11 @@ class SettingsDialog(QDialog):
         button_layout.addWidget(self.cancel_btn)
         layout.addLayout(button_layout)
 
+        # Log Window Title
+        log_title = QLabel("日志窗口 - 显示程序运行状态")
+        log_title.setStyleSheet("font-weight: bold; color: #1D1D1F; font-size: 13px; padding-bottom: 5px;")
+        layout.addWidget(log_title)
+
         # Log Display
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
@@ -78,7 +104,7 @@ class SettingsDialog(QDialog):
 
         # 配置日志输出
         log_handler = TextEditLogger(self.log_text)
-        log_handler.setFormatter(logger.handlers[0].formatter if logger.handlers else formatter)  # 使用现有格式器
+        log_handler.setFormatter(formatter)
         logger.addHandler(log_handler)
 
         # macOS 风格
@@ -102,6 +128,8 @@ class SettingsDialog(QDialog):
                 self.cookies_input.setText(config.get('cookies', ''))
                 self.stage_input.setText(config.get('stage', ''))
                 self.interval_input.setText(str(config.get('interval', 60)))
+                self.email_input.setText(config.get('email', ''))
+                self.email_password_input.setText(config.get('password', ''))
         except Exception as e:
             logger.error(f"加载配置文件失败: {e}", exc_info=True)
             QMessageBox.warning(self, "错误", "无法加载配置文件，使用默认值")
@@ -110,6 +138,8 @@ class SettingsDialog(QDialog):
         cookies = self.cookies_input.text().strip()
         stage = self.stage_input.text().strip()
         interval = self.interval_input.text().strip()
+        email = self.email_input.text().strip()
+        email_password = self.email_password_input.text().strip()
 
         if not cookies:
             return False, "Cookies 不能为空"
@@ -121,6 +151,10 @@ class SettingsDialog(QDialog):
                 return False, "定时频率必须是正整数"
         except ValueError:
             return False, "定时频率必须是整数"
+        if not email or '@qq.com' not in email:
+            return False, "请输入有效的 QQ 邮箱地址"
+        if not email_password:
+            return False, "请输入 QQ 邮箱授权码"
         return True, ""
 
     def save_settings(self):
@@ -132,7 +166,9 @@ class SettingsDialog(QDialog):
         config = {
             "cookies": self.cookies_input.text().strip(),
             "stage": self.stage_input.text().strip(),
-            "interval": int(self.interval_input.text().strip())
+            "interval": int(self.interval_input.text().strip()),
+            "email": self.email_input.text().strip(),
+            "password": self.email_password_input.text().strip()
         }
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.json')
         try:
